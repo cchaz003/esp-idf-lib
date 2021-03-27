@@ -16,7 +16,8 @@
 #include <esp_idf_lib_helpers.h>
 #include "bme680.h"
 
-#define I2C_FREQ_HZ 1000000 // Up to 3.4MHz, but esp-idf only supports 1MHz
+// #define I2C_FREQ_HZ 1000000 // Up to 3.4MHz, but esp-idf only supports 1MHz
+#define I2C_FREQ_HZ 100000 // Up to 3.4MHz, but esp-idf only supports 1MHz
 
 // modes: unfortunatly, only SLEEP_MODE and FORCED_MODE are documented
 #define BME680_SLEEP_MODE           0x00    // low power sleeping

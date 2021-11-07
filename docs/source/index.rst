@@ -81,13 +81,17 @@ Add path to components in your project makefile, e.g:
 Available components
 ====================
 
-Common drivers
-==============
+Common libraries
+================
 .. toctree::
    :maxdepth: 1
 
    groups/i2cdev
    groups/onewire
+   groups/lib8tion
+   groups/color
+   groups/noise
+   groups/framebuffer
 
 Real-time clocks
 ================
@@ -115,6 +119,8 @@ Humidity & temperature sensors
    groups/mcp9808
    groups/mcp960x
    groups/tsys01
+   groups/aht
+   groups/max31865
    
 Pressure sensors
 ================
@@ -133,6 +139,9 @@ Air quality/Gas sensors
 
    groups/sgp40
    groups/ccs811
+   groups/mhz19b
+   groups/scd4x
+   groups/scd30
 
 ADC/DAC
 =======
@@ -182,6 +191,7 @@ GPIO expanders
    groups/tca95x5
    groups/mcp23008
    groups/mcp23x17
+   groups/pca9557
    
 Addressable LEDs
 ================
@@ -190,6 +200,14 @@ Addressable LEDs
 
    groups/led_strip
    groups/led_strip_spi
+
+Input controls
+==============
+.. toctree::
+   :maxdepth: 1
+
+   groups/button
+   groups/encoder
 
 Other
 =====
@@ -200,11 +218,11 @@ Other
    groups/max7219
    groups/pca9685
    groups/ultrasonic
-   groups/encoder
    groups/tda74xx
    groups/rda5807m
    groups/tca9548
    groups/ds3502
+   groups/wiegand
    
 
 ===========

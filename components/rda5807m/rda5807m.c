@@ -1,9 +1,36 @@
+/*
+ * Copyright (c) 2018 Ruslan V. Uss <unclerus@gmail.com>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of itscontributors
+ *    may be used to endorse or promote products derived from this software without
+ *    specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 /**
  * @file rda5807m.c
  *
  * ESP-IDF driver for single-chip broadcast FM radio tuner RDA5807M
  *
- * Copyright (C) 2018 Ruslan V. Uss <https://github.com/UncleRus>
+ * Copyright (c) 2018 Ruslan V. Uss <unclerus@gmail.com>
  *
  * BSD Licensed as described in the file LICENSE
  */
@@ -13,7 +40,7 @@
 #include <string.h>
 #include <esp_err.h>
 
-#define I2C_FREQ_HZ 400000 // 400kHz
+#define I2C_FREQ_HZ 100000 // 100kHz
 
 #define I2C_ADDR_SEQ 0x10
 #define I2C_ADDR_IDX 0x11
@@ -241,9 +268,9 @@ esp_err_t rda5807m_get_state(rda5807m_t *dev, rda5807m_state_t *state)
     CHECK(read_registers_bulk(dev, r, 6));
     CHECK(read_register(dev, REG_CTRL, &ctrl));
 
-    if (ctrl & BIT_CTRL_SEEK) state->seek_status = RDA5807M_SEEK_STARTED;
-    else if (r[0] & BIT_RA_SF) state->seek_status = RDA5807M_SEEK_FAILED;
+    if (r[0] & BIT_RA_SF) state->seek_status = RDA5807M_SEEK_FAILED;
     else if (r[0] & BIT_RA_STC) state->seek_status = RDA5807M_SEEK_COMPLETE;
+    else if (ctrl & BIT_CTRL_SEEK) state->seek_status = RDA5807M_SEEK_STARTED;
     else state->seek_status = RDA5807M_SEEK_NONE;
 
     state->frequency = (r[0] & MASK_RA_READCHAN) * spacings[dev->spacing] + band_limits[dev->band].lower;

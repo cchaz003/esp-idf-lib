@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2016 Grzegorz Hetman <ghetman@gmail.com>
+ * Copyright (c) 2016 Alex Stewart <foogod@gmail.com>
+ * Copyright (c) 2018 Ruslan V. Uss <unclerus@gmail.com>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of itscontributors
+ *    may be used to endorse or promote products derived from this software without
+ *    specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 /**
  * @file ds18x20.h
  * @defgroup ds18x20 ds18x20
@@ -7,9 +36,9 @@
  *
  * Ported from esp-open-rtos
  *
- * Copyright (C) 2016 Grzegorz Hetman <ghetman@gmail.com>\n
- * Copyright (C) 2016 Alex Stewart <foogod@gmail.com>\n
- * Copyright (C) 2018 Ruslan V. Uss <unclerus@gmail.com>
+ * Copyright (c) 2016 Grzegorz Hetman <ghetman@gmail.com>\n
+ * Copyright (c) 2016 Alex Stewart <foogod@gmail.com>\n
+ * Copyright (c) 2018 Ruslan V. Uss <unclerus@gmail.com>
  *
  * BSD Licensed as described in the file LICENSE
  */
@@ -100,6 +129,40 @@ esp_err_t ds18x20_measure(gpio_num_t pin, ds18x20_addr_t addr, bool wait);
 esp_err_t ds18x20_read_temperature(gpio_num_t pin, ds18x20_addr_t addr, float *temperature);
 
 /**
+ * @brief Read the value from the last CONVERT_T operation (ds18b20 version).
+ *
+ * This should be called after ds18x20_measure() to fetch the result of the
+ * temperature measurement.
+ *
+ * @param pin         The GPIO pin connected to the ds18x20 device
+ * @param addr        The 64-bit address of the device to read. This can be set
+ *                    to ::DS18X20_ANY to read any device on the bus (but note
+ *                    that this will only work if there is exactly one device
+ *                    connected, or they will corrupt each others' transmissions)
+ * @param temperature The temperature in degrees Celsius
+ *
+ * @returns `ESP_OK` if the command was successfully issued
+ */
+esp_err_t ds18b20_read_temperature(gpio_num_t pin, ds18x20_addr_t addr, float *temperature);
+
+/**
+ * @brief Read the value from the last CONVERT_T operation (ds18s20 version).
+ *
+ * This should be called after ds18x20_measure() to fetch the result of the
+ * temperature measurement.
+ *
+ * @param pin         The GPIO pin connected to the ds18x20 device
+ * @param addr        The 64-bit address of the device to read. This can be set
+ *                    to ::DS18X20_ANY to read any device on the bus (but note
+ *                    that this will only work if there is exactly one device
+ *                    connected, or they will corrupt each others' transmissions)
+ * @param temperature The temperature in degrees Celsius
+ *
+ * @returns `ESP_OK` if the command was successfully issued
+ */
+esp_err_t ds18s20_read_temperature(gpio_num_t pin, ds18x20_addr_t addr, float *temperature);
+
+/**
  * @brief Read the value from the last CONVERT_T operation for multiple devices.
  *
  * This should be called after ds18x20_measure() to fetch the result of the
@@ -114,6 +177,28 @@ esp_err_t ds18x20_read_temperature(gpio_num_t pin, ds18x20_addr_t addr, float *t
  * @returns `ESP_OK` if all temperatures were fetched successfully
  */
 esp_err_t ds18x20_read_temp_multi(gpio_num_t pin, ds18x20_addr_t *addr_list, size_t addr_count, float *result_list);
+
+/** Perform a ds18x20_measure() followed by ds18s20_read_temperature()
+ *
+ *  @param pin         The GPIO pin connected to the ds18s20 device
+ *  @param addr        The 64-bit address of the device to read. This can be set
+ *                     to ::DS18X20_ANY to read any device on the bus (but note
+ *                     that this will only work if there is exactly one device
+ *                     connected, or they will corrupt each others' transmissions)
+ *  @param temperature The temperature in degrees Celsius
+ */
+esp_err_t ds18s20_measure_and_read(gpio_num_t pin, ds18x20_addr_t addr, float *temperature);
+
+/** Perform a ds18x20_measure() followed by ds18b20_read_temperature()
+ *
+ *  @param pin         The GPIO pin connected to the ds18x20 device
+ *  @param addr        The 64-bit address of the device to read. This can be set
+ *                     to ::DS18X20_ANY to read any device on the bus (but note
+ *                     that this will only work if there is exactly one device
+ *                     connected, or they will corrupt each others' transmissions)
+ *  @param temperature The temperature in degrees Celsius
+ */
+esp_err_t ds18b20_measure_and_read(gpio_num_t pin, ds18x20_addr_t addr, float *temperature);
 
 /** Perform a ds18x20_measure() followed by ds18x20_read_temperature()
  *
@@ -155,6 +240,35 @@ esp_err_t ds18x20_measure_and_read_multi(gpio_num_t pin, ds18x20_addr_t *addr_li
  * @returns `ESP_OK` if the command was successfully issued
  */
 esp_err_t ds18x20_read_scratchpad(gpio_num_t pin, ds18x20_addr_t addr, uint8_t *buffer);
+
+/**
+ * @brief Write the scratchpad data for a particular ds18x20 device.
+ *
+ * @param pin     The GPIO pin connected to the ds18x20 device
+ * @param addr    The 64-bit address of the device to write. This can be set
+ *                to ::DS18X20_ANY to read any device on the bus (but note
+ *                that this will only work if there is exactly one device
+ *                connected, or they will corrupt each others' transmissions)
+ * @param buffer  An 3-byte buffer to hold the data to write
+ *
+ * @returns `ESP_OK` if the command was successfully issued
+ */
+esp_err_t ds18x20_write_scratchpad(gpio_num_t pin, ds18x20_addr_t addr, uint8_t *buffer);
+
+/**
+ * @brief Issue the copy scratchpad command, copying current scratchpad to
+ *        EEPROM.
+ *
+ * @param pin     The GPIO pin connected to the ds18x20 device
+ * @param addr    The 64-bit address of the device to command. This can be set
+ *                to ::DS18X20_ANY to read any device on the bus (but note
+ *                that this will only work if there is exactly one device
+ *                connected, or they will corrupt each others' transmissions)
+ *
+ * @returns `ESP_OK` if the command was successfully issued
+ */
+esp_err_t ds18x20_copy_scratchpad(gpio_num_t pin, ds18x20_addr_t addr);
+
 
 #ifdef __cplusplus
 }

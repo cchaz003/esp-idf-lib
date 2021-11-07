@@ -1,3 +1,26 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2020 Ruslan V. Uss <unclerus@gmail.com>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 /**
  * @file led_strip.h
  * @defgroup led_strip led_strip
@@ -5,7 +28,7 @@
  *
  * RMT-based ESP-IDF driver for WS2812B/SK6812/APA106 LED strips
  *
- * Copyright (C) 2020 Ruslan V. Uss <https://github.com/UncleRus>
+ * Copyright (c) 2020 Ruslan V. Uss <unclerus@gmail.com>
  *
  * MIT Licensed as described in the file LICENSE
  */
@@ -15,25 +38,15 @@
 #include <driver/gpio.h>
 #include <esp_err.h>
 #include <driver/rmt.h>
+#include <color.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/**
- * RGB color representation
- */
-typedef struct
-{
-    union
-    {
-        struct
-        {
-            uint8_t r, g, b, w;
-        };
-        uint8_t raw[4];
-    };
-} rgb_t;
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 0)
+#define LED_STRIP_BRIGHTNESS 1
+#endif
 
 /**
  * LED type
@@ -50,12 +63,16 @@ typedef enum
  */
 typedef struct
 {
-    led_strip_type_t type;
-    bool is_rgbw;
-    size_t length;
-    gpio_num_t gpio;
-    rmt_channel_t channel;
-    void *buf;
+    led_strip_type_t type; ///< LED type
+    bool is_rgbw;          ///< true for RGBW strips
+#ifdef LED_STRIP_BRIGHTNESS
+    uint8_t brightness;    ///< Brightness 0..255, call ::led_strip_flush() after change.
+                           ///< Supported only for ESP-IDF version >= 4.4
+#endif
+    size_t length;         ///< Number of LEDs in strip
+    gpio_num_t gpio;       ///< Data GPIO pin
+    rmt_channel_t channel; ///< RMT channel
+    uint8_t *buf;
 } led_strip_t;
 
 /**

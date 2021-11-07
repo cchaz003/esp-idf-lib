@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (C) 2020 Ruslan V. Uss <https://github.com/UncleRus>
+ * Copyright (c) 2020 Ruslan V. Uss <unclerus@gmail.com>
  *               2021 Tomoyuki Sakurai <y@rombik.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -63,7 +63,7 @@ esp_err_t led_strip_spi_install()
     mutex = xSemaphoreCreateMutex();
     if (mutex == NULL) {
         err = ESP_FAIL;
-        ESP_LOGE(TAG, "xSemaphoreCreateMutex(): faild");
+        ESP_LOGE(TAG, "xSemaphoreCreateMutex(): failed");
         goto fail;
     }
     err = ESP_OK;
@@ -254,12 +254,23 @@ fail:
 #endif
 
 #if HELPER_TARGET_IS_ESP8266
+
+#define ESP8266_SPI_MAX_DATA_LENGTH 64 // in bytes
+
 static esp_err_t led_strip_spi_flush_esp8266(led_strip_spi_t *strip)
 {
     esp_err_t err = ESP_FAIL;
     spi_trans_t trans = {0};
+    int mosi_buffer_block_size, mosi_buffer_block_size_mod;
 
     CHECK_ARG(strip);
+
+    /* XXX send ESP8266_SPI_MAX_DATA_LENGTH bytes data at a time. the
+     * documentation does not mention the limitation, but the SPI master
+     * driver complains:
+     * "spi: spi_master_trans(454): spi mosi must be shorter than 512 bits" */
+    mosi_buffer_block_size = LED_STRIP_SPI_BUFFER_SIZE(strip->length) / ESP8266_SPI_MAX_DATA_LENGTH;
+    mosi_buffer_block_size_mod = LED_STRIP_SPI_BUFFER_SIZE(strip->length) % ESP8266_SPI_MAX_DATA_LENGTH;
 
     if (xSemaphoreTake(mutex, MUTEX_TIMEOUT) != pdTRUE) {
         err = ESP_FAIL;
@@ -267,12 +278,23 @@ static esp_err_t led_strip_spi_flush_esp8266(led_strip_spi_t *strip)
         goto fail_without_give;
     }
 
-    trans.bits.mosi = LED_STRIP_SPI_BUFFER_SIZE(strip->length) * 8;
-    trans.mosi = strip->buf;
-    err = spi_trans(HSPI_HOST, &trans);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "spi_trans(): %s", esp_err_to_name(err));
-        goto fail;
+    for (int i = 0; i < mosi_buffer_block_size; i++) {
+        trans.bits.mosi = ESP8266_SPI_MAX_DATA_LENGTH * 8; // bits, not bytes
+        trans.mosi = strip->buf + ESP8266_SPI_MAX_DATA_LENGTH * i / sizeof(uint32_t);
+        err = spi_trans(HSPI_HOST, &trans);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "spi_trans(): %s", esp_err_to_name(err));
+            goto fail;
+        }
+    }
+    if (mosi_buffer_block_size_mod > 0) {
+        trans.bits.mosi = mosi_buffer_block_size_mod * 8; // bits, not bytes
+        trans.mosi = strip->buf + ESP8266_SPI_MAX_DATA_LENGTH * mosi_buffer_block_size / sizeof(uint32_t);
+        err = spi_trans(HSPI_HOST, &trans);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "spi_trans(): %s", esp_err_to_name(err));
+            goto fail;
+        }
     }
 fail:
     if (xSemaphoreGive(mutex) != pdTRUE) {
@@ -295,17 +317,33 @@ esp_err_t led_strip_spi_flush(led_strip_spi_t*strip)
 
 esp_err_t led_strip_spi_set_pixel(led_strip_spi_t *strip, const int index, const rgb_t color)
 {
-#if CONFIG_LED_STRIP_SPI_USING_SK9822
-    return led_strip_spi_set_pixel_sk9822(strip, index, color);
-#endif
+    return led_strip_spi_set_pixel_brightness(strip, index, color, LED_STRIP_SPI_MAX_BRIGHTNESS);
 }
 
 esp_err_t led_strip_spi_set_pixels(led_strip_spi_t*strip, const int start, size_t len, const rgb_t data)
 {
+    return led_strip_spi_set_pixels_brightness(strip, start, len, data, LED_STRIP_SPI_MAX_BRIGHTNESS);
+}
+
+esp_err_t led_strip_spi_fill(led_strip_spi_t*strip, size_t start, size_t len, rgb_t color)
+{
+    return led_strip_spi_fill_brightness(strip, start, len, color, LED_STRIP_SPI_MAX_BRIGHTNESS);
+}
+
+esp_err_t led_strip_spi_set_pixel_brightness(led_strip_spi_t *strip, const int index, const rgb_t color, const uint8_t brightness)
+{
+#if CONFIG_LED_STRIP_SPI_USING_SK9822
+    return led_strip_spi_set_pixel_sk9822(strip, index, color, brightness);
+#endif
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+esp_err_t led_strip_spi_set_pixels_brightness(led_strip_spi_t*strip, const int start, size_t len, const rgb_t data, const uint8_t brightness)
+{
     esp_err_t err = ESP_FAIL;
 
     for (int i = 0; i < len; i++) {
-        err = led_strip_spi_set_pixel(strip, start + i, data);
+        err = led_strip_spi_set_pixel_brightness(strip, start + i, data, brightness);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "led_strip_spi_set_pixel(): %s", esp_err_to_name(err));
             goto fail;
@@ -315,12 +353,12 @@ fail:
     return err;
 }
 
-esp_err_t led_strip_spi_fill(led_strip_spi_t*strip, size_t start, size_t len, rgb_t color)
+esp_err_t led_strip_spi_fill_brightness(led_strip_spi_t*strip, size_t start, size_t len, rgb_t color, const uint8_t brightness)
 {
     CHECK_ARG(strip && len && start + len <= strip->length);
 
     for (size_t i = start; i < len; i++) {
-        CHECK(led_strip_spi_set_pixel(strip, i, color));
+        CHECK(led_strip_spi_set_pixel_brightness(strip, i, color, brightness));
     }
     return ESP_OK;
 }
